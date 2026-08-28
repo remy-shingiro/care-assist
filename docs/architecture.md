@@ -4,4 +4,4 @@ Care Assist is a React Native and Expo mobile application written in TypeScript.
 
 Feature code belongs in `src/features`; shared primitives belong in `src/components`; Firebase initialization and SDK adapters belong in `src/lib/firebase`; domain contracts belong in `src/types`.
 
-This phase contains route placeholders only. It does not implement booking creation, role resolution, management workflows, or feature UI.
+Milestone 1 implements Firebase email/password authentication, patient profile creation, profile loading, logout, and role-aware routing. Booking creation, management workflows, and feature UI remain deferred.

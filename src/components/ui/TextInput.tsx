@@ -5,9 +5,16 @@ interface TextInputProps {
   readonly value?: string;
   readonly onChangeText?: (value: string) => void;
   readonly placeholder?: string;
+  readonly secureTextEntry?: boolean;
 }
 
-export function TextInput({ label, value, onChangeText, placeholder }: TextInputProps) {
+export function TextInput({
+  label,
+  value,
+  onChangeText,
+  placeholder,
+  secureTextEntry = false,
+}: TextInputProps) {
   return (
     <>
       <Text style={styles.label}>{label}</Text>
@@ -15,6 +22,7 @@ export function TextInput({ label, value, onChangeText, placeholder }: TextInput
         accessibilityLabel={label}
         onChangeText={onChangeText}
         placeholder={placeholder}
+        secureTextEntry={secureTextEntry}
         style={styles.input}
         value={value}
       />

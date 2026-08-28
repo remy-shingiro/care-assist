@@ -1,1 +1,1 @@
-Authentication feature boundary. Firebase auth service contracts currently live in `src/lib/firebase/auth.ts`; UI and role resolution are intentionally deferred.
+Authentication feature boundary. Firebase auth service contracts live in `src/lib/firebase/auth.ts`, profile access lives in `src/lib/firebase/firestore.ts`, and session/profile routing is provided by `AuthProvider.tsx`. Manager account provisioning remains server-authoritative and has no client registration flow.
