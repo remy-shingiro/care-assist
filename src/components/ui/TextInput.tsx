@@ -6,6 +6,8 @@ interface TextInputProps {
   readonly onChangeText?: (value: string) => void;
   readonly placeholder?: string;
   readonly secureTextEntry?: boolean;
+  readonly multiline?: boolean;
+  readonly autoCapitalize?: 'none' | 'sentences' | 'words' | 'characters';
 }
 
 export function TextInput({
@@ -14,12 +16,16 @@ export function TextInput({
   onChangeText,
   placeholder,
   secureTextEntry = false,
+  multiline = false,
+  autoCapitalize = 'sentences',
 }: TextInputProps) {
   return (
     <>
       <Text style={styles.label}>{label}</Text>
       <NativeTextInput
         accessibilityLabel={label}
+        autoCapitalize={autoCapitalize}
+        multiline={multiline}
         onChangeText={onChangeText}
         placeholder={placeholder}
         secureTextEntry={secureTextEntry}

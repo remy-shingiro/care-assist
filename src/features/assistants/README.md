@@ -1,1 +1,1 @@
-Assistant feature boundary. Assistants are business records, not application users. Management workflows are intentionally deferred.
+Assistant feature boundary. Assistants are business records, not application users. Managers maintain assistant records and unavailable periods; patients can search active assistants for a validated date and time without creating a booking.
