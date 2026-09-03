@@ -1,7 +1,8 @@
-import { useLocalSearchParams } from 'expo-router';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { Image, ScrollView, StyleSheet, Text } from 'react-native';
 
+import { Button } from '../../components/ui/Button';
 import { EmptyState, ErrorState, Loading } from '../../components/ui/State';
 import { Screen } from '../../components/ui/Screen';
 import { getAssistant } from '../../features/assistants/assistants.service';
@@ -12,6 +13,7 @@ function typeLabel(type: Assistant['type']): string {
 }
 
 export default function PatientAssistantDetails() {
+  const router = useRouter();
   const { id, date, startTime, endTime } = useLocalSearchParams<{
     id: string;
     date: string;
@@ -66,6 +68,14 @@ export default function PatientAssistantDetails() {
         <Text>{assistant.experience}</Text>
         <Text style={styles.heading}>Services</Text>
         <Text>{assistant.services.join(', ')}</Text>
+        <Button
+          label="Request assistance with this assistant"
+          onPress={() =>
+            router.push(
+              `/(patient)/booking-request?assistantId=${encodeURIComponent(assistant.id)}&assistantName=${encodeURIComponent(assistant.fullName)}&date=${encodeURIComponent(date)}&startTime=${encodeURIComponent(startTime)}&endTime=${encodeURIComponent(endTime)}`,
+            )
+          }
+        />
       </ScrollView>
     </Screen>
   );

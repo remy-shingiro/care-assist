@@ -1,1 +1,1 @@
-Booking feature boundary. Booking workflows and active-booking enforcement are intentionally deferred.
+Booking feature boundary. Patients can submit a validated request with status `PENDING`. Manager decisions, booking lifecycle transitions, active-booking enforcement, and patient cancellation remain deferred.
