@@ -8,6 +8,7 @@ export default function Welcome() {
     <Screen>
       <Text>Care Assist</Text>
       <Link href="/(auth)/login">Continue to login</Link>
+      <Link href="/(auth)/register">Create a patient account</Link>
     </Screen>
   );
 }

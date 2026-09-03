@@ -6,19 +6,28 @@ service cloud.firestore {
       return request.auth != null;
     }
 
+    function isOwner(userId) {
+      return signedIn() && request.auth.uid == userId;
+    }
+
+    function isManager() {
+      return signedIn() &&
+        request.auth.token.role == 'manager';
+    }
+
     match /users/{userId} {
-      allow read: if signedIn() && request.auth.uid == userId;
-      allow create: if signedIn() &&
-        request.auth.uid == userId &&
+      allow read: if isOwner(userId);
+
+      allow create: if isOwner(userId) &&
         request.resource.data.role == 'patient';
-      allow update: if signedIn() &&
-        request.auth.uid == userId &&
+
+      allow update: if isOwner(userId) &&
         request.resource.data.role == resource.data.role;
     }
 
     match /assistants/{assistantId} {
       allow read: if signedIn();
-      allow write: if false;
+      allow write: if isManager();
     }
 
     match /bookings/{bookingId} {
@@ -27,7 +36,7 @@ service cloud.firestore {
 
     match /educationContent/{contentId} {
       allow read: if signedIn();
-      allow write: if false;
+      allow write: if isManager();
     }
   }
 }
