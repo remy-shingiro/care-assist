@@ -6,7 +6,10 @@ import { Button } from '../../components/ui/Button';
 import { ErrorState } from '../../components/ui/State';
 import { Screen } from '../../components/ui/Screen';
 import { useAuth } from '../../features/auth/AuthProvider';
-import { createPendingBooking } from '../../features/bookings/bookings.service';
+import {
+  BookingServiceError,
+  createPendingBooking,
+} from '../../features/bookings/bookings.service';
 import { validateBookingRequest } from '../../features/bookings/bookings.validation';
 
 export default function BookingReview() {
@@ -47,8 +50,15 @@ export default function BookingReview() {
     try {
       const bookingId = await createPendingBooking(input);
       router.replace(`/(patient)/booking-confirmation?id=${encodeURIComponent(bookingId)}`);
-    } catch {
-      setError('Unable to submit the request. Please try again.');
+    } catch (submissionError) {
+      if (
+        submissionError instanceof BookingServiceError &&
+        submissionError.code === 'active-booking-exists'
+      ) {
+        setError('You already have an active assistance request.');
+      } else {
+        setError('Unable to submit the request. Please try again.');
+      }
     } finally {
       setSubmitting(false);
     }

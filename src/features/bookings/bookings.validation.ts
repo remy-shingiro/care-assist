@@ -1,4 +1,5 @@
 import { isValidDate, isValidTimeRange } from '../assistants/availability';
+export { isActiveBookingStatus, isAllowedManagerTransition } from './booking-state';
 
 export interface BookingRequestInput {
   readonly patientId: string;

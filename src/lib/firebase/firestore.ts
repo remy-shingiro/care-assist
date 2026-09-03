@@ -9,6 +9,7 @@ export const FIRESTORE_COLLECTIONS = {
   users: 'users',
   assistants: 'assistants',
   bookings: 'bookings',
+  activeBookings: 'activeBookings',
   educationContent: 'educationContent',
 } as const;
 

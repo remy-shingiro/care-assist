@@ -12,6 +12,7 @@ export default function ManagerDashboard() {
     <Screen>
       <Text>Manager dashboard</Text>
       <Text>Welcome, {profile?.fullName}</Text>
+      <Button label="Pending requests" onPress={() => router.push('/(manager)/requests')} />
       <Button label="Assistants" onPress={() => router.push('/(manager)/assistants')} />
       <Button label="Sign out" onPress={() => void signOut()} />
     </Screen>

@@ -29,6 +29,7 @@
     "android": "expo start --android",
     "ios": "expo start --ios",
     "web": "expo start --web",
+    "test:bookings": "node --experimental-strip-types --test src/features/bookings/bookings.validation.test.mjs",
     "test:availability": "node --experimental-strip-types --test src/features/assistants/availability.test.mjs",
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",

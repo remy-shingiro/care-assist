@@ -20,7 +20,7 @@ service cloud.firestore {
     }
 
     match /users/{userId} {
-      allow read: if isOwner(userId);
+      allow read: if isOwner(userId) || isManager();
 
       allow create: if isOwner(userId) &&
         request.resource.data.role == 'patient';
@@ -70,7 +70,48 @@ service cloud.firestore {
         request.resource.data.createdAt == request.time &&
         request.resource.data.updatedAt == request.time;
 
-      allow update, delete: if false;
+      allow update: if isManager() &&
+        request.resource.data.updatedAt == request.time &&
+        (
+          (resource.data.status == 'PENDING' &&
+            request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+              'assignedAssistantId', 'status', 'updatedAt'
+            ]) &&
+            request.resource.data.status in ['CONFIRMED', 'REJECTED'] &&
+            (
+              (request.resource.data.status == 'REJECTED' &&
+                request.resource.data.assignedAssistantId == null &&
+                !existsAfter(/databases/$(database)/documents/activeBookings/$(resource.data.patientId))) ||
+              (request.resource.data.status == 'CONFIRMED' &&
+                request.resource.data.assignedAssistantId is string &&
+                get(/databases/$(database)/documents/assistants/$(request.resource.data.assignedAssistantId)).data.active == true &&
+                getAfter(/databases/$(database)/documents/activeBookings/$(resource.data.patientId)).data.bookingId == bookingId)
+            )) ||
+          (resource.data.status == 'CONFIRMED' &&
+            request.resource.data.status == 'CONFIRMED' &&
+            request.resource.data.assignedAssistantId is string &&
+            request.resource.data.assignedAssistantId != resource.data.assignedAssistantId &&
+            request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+              'assignedAssistantId', 'updatedAt'
+            ]) &&
+            get(/databases/$(database)/documents/assistants/$(request.resource.data.assignedAssistantId)).data.active == true &&
+            getAfter(/databases/$(database)/documents/activeBookings/$(resource.data.patientId)).data.bookingId == bookingId)
+        );
+      allow delete: if false;
+    }
+
+    match /activeBookings/{patientId} {
+      allow read: if isOwner(patientId) || isManager();
+      allow create: if isOwner(patientId) &&
+        request.resource.data.keys().hasOnly(['bookingId', 'patientId']) &&
+        request.resource.data.patientId == patientId &&
+        request.resource.data.bookingId is string &&
+        getAfter(/databases/$(database)/documents/bookings/$(request.resource.data.bookingId)).data.patientId == patientId &&
+        getAfter(/databases/$(database)/documents/bookings/$(request.resource.data.bookingId)).data.status == 'PENDING';
+      allow delete: if isManager() &&
+        getAfter(/databases/$(database)/documents/bookings/$(resource.data.bookingId)).data.patientId == patientId &&
+        getAfter(/databases/$(database)/documents/bookings/$(resource.data.bookingId)).data.status == 'REJECTED';
+      allow update: if false;
     }
 
     match /educationContent/{contentId} {
