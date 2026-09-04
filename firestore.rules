@@ -23,15 +23,65 @@ service cloud.firestore {
       allow read: if isOwner(userId) || isManager();
 
       allow create: if isOwner(userId) &&
-        request.resource.data.role == 'patient';
+        request.resource.data.keys().hasOnly([
+          'id', 'role', 'fullName', 'phone', 'email', 'createdAt', 'updatedAt'
+        ]) &&
+        request.resource.data.id == userId &&
+        request.resource.data.role == 'patient' &&
+        request.resource.data.fullName is string &&
+        request.resource.data.phone is string &&
+        request.resource.data.email is string &&
+        request.resource.data.createdAt == request.time &&
+        request.resource.data.updatedAt == request.time;
 
       allow update: if isOwner(userId) &&
-        request.resource.data.role == resource.data.role;
+        request.resource.data.keys().hasOnly([
+          'id', 'role', 'fullName', 'phone', 'email', 'createdAt', 'updatedAt'
+        ]) &&
+        request.resource.data.id == resource.data.id &&
+        request.resource.data.role == resource.data.role &&
+        request.resource.data.createdAt == resource.data.createdAt &&
+        request.resource.data.updatedAt == request.time &&
+        request.resource.data.fullName is string &&
+        request.resource.data.phone is string &&
+        request.resource.data.email is string;
     }
 
     match /assistants/{assistantId} {
       allow read: if signedIn();
-      allow write: if isManager();
+      allow create: if isManager() &&
+        request.resource.data.keys().hasOnly([
+          'fullName', 'type', 'photoUrl', 'phone', 'bio', 'experience',
+          'services', 'active', 'unavailablePeriods', 'createdAt', 'updatedAt'
+        ]) &&
+        request.resource.data.fullName is string &&
+        request.resource.data.type in ['professional', 'general'] &&
+        (request.resource.data.photoUrl is string || request.resource.data.photoUrl == null) &&
+        request.resource.data.phone is string &&
+        request.resource.data.bio is string &&
+        request.resource.data.experience is string &&
+        request.resource.data.services is list &&
+        request.resource.data.active == true &&
+        request.resource.data.unavailablePeriods is list &&
+        request.resource.data.createdAt == request.time &&
+        request.resource.data.updatedAt == request.time;
+      allow update: if isManager() &&
+        request.resource.data.keys().hasOnly([
+          'fullName', 'type', 'photoUrl', 'phone', 'bio', 'experience',
+          'services', 'active', 'unavailablePeriods', 'createdAt', 'updatedAt'
+        ]) &&
+        request.resource.data.createdAt == resource.data.createdAt &&
+        request.resource.data.updatedAt == request.time &&
+        request.resource.data.fullName is string &&
+        request.resource.data.type in ['professional', 'general'] &&
+        (request.resource.data.photoUrl is string || request.resource.data.photoUrl == null) &&
+        request.resource.data.phone is string &&
+        request.resource.data.bio is string &&
+        request.resource.data.experience is string &&
+        request.resource.data.services is list &&
+        request.resource.data.active is bool &&
+        request.resource.data.unavailablePeriods is list;
+      allow delete: if isManager();
     }
 
     match /bookings/{bookingId} {
@@ -69,6 +119,7 @@ service cloud.firestore {
         request.resource.data.serviceDescription is string &&
         request.resource.data.createdAt == request.time &&
         request.resource.data.updatedAt == request.time &&
+        getAfter(/databases/$(database)/documents/bookings/$(bookingId)).data.createdAt == request.time &&
         getAfter(/databases/$(database)/documents/activeBookings/$(request.auth.uid)).data.bookingId == bookingId;
 
       allow update: if request.resource.data.updatedAt == request.time &&
@@ -126,7 +177,8 @@ service cloud.firestore {
         request.resource.data.patientId == patientId &&
         request.resource.data.bookingId is string &&
         getAfter(/databases/$(database)/documents/bookings/$(request.resource.data.bookingId)).data.patientId == patientId &&
-        getAfter(/databases/$(database)/documents/bookings/$(request.resource.data.bookingId)).data.status == 'PENDING';
+        getAfter(/databases/$(database)/documents/bookings/$(request.resource.data.bookingId)).data.status == 'PENDING' &&
+        getAfter(/databases/$(database)/documents/bookings/$(request.resource.data.bookingId)).data.createdAt == request.time;
       allow delete: if (isManager() || isOwner(patientId)) &&
         getAfter(/databases/$(database)/documents/bookings/$(resource.data.bookingId)).data.patientId == patientId &&
         getAfter(/databases/$(database)/documents/bookings/$(resource.data.bookingId)).data.status in [

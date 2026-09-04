@@ -91,13 +91,13 @@ function requireContent(input: EducationContentInput): ReturnType<typeof content
 }
 
 export async function listPublishedEducation(): Promise<EducationContent[]> {
-  const snapshot = await getDocs(
-    query(educationCollection, where('published', '==', true), orderBy('updatedAt', 'desc')),
-  );
-  return snapshot.docs.flatMap((item) => {
-    const content = readEducationContent(item.id, item.data());
-    return content === null ? [] : [content];
-  });
+  const snapshot = await getDocs(query(educationCollection, where('published', '==', true)));
+  return snapshot.docs
+    .flatMap((item) => {
+      const content = readEducationContent(item.id, item.data());
+      return content === null ? [] : [content];
+    })
+    .sort((first, second) => second.updatedAt.localeCompare(first.updatedAt));
 }
 
 export async function listAllEducation(): Promise<EducationContent[]> {

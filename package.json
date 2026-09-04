@@ -31,6 +31,8 @@
     "web": "expo start --web",
     "test:bookings": "node --experimental-strip-types --test src/features/bookings/bookings.validation.test.mjs",
     "test:availability": "node --experimental-strip-types --test src/features/assistants/availability.test.mjs",
+    "test:education": "node --experimental-strip-types --test src/features/education/education.validation.test.mjs",
+    "test:migration": "node --test scripts/migrate-active-bookings.test.mjs",
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
     "format": "prettier --write .",
