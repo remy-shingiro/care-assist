@@ -12,6 +12,7 @@ import {
   where,
 } from 'firebase/firestore';
 
+import { auth } from '../../lib/firebase/auth';
 import { FIRESTORE_COLLECTIONS, firestore } from '../../lib/firebase/firestore';
 import { isAssistantAvailable } from '../assistants/availability';
 import type { Assistant, AssistantType, UnavailablePeriod } from '../../types/assistant';
@@ -27,6 +28,10 @@ export type BookingServiceErrorCode =
   | 'booking-not-found'
   | 'booking-not-pending'
   | 'booking-not-confirmed'
+  | 'booking-not-in-progress'
+  | 'booking-not-cancellable'
+  | 'unauthorized-lifecycle-action'
+  | 'reservation-mismatch'
   | 'assistant-not-found'
   | 'assistant-unavailable'
   | 'assignment-unchanged'
@@ -195,6 +200,16 @@ export async function listBookings(status?: BookingStatus): Promise<Booking[]> {
     .sort((first, second) => second.createdAt.localeCompare(first.createdAt));
 }
 
+export async function listPatientBookings(patientId: string): Promise<Booking[]> {
+  const snapshot = await getDocs(query(bookingsCollection, where('patientId', '==', patientId)));
+  return snapshot.docs
+    .flatMap((item) => {
+      const booking = readBooking(item.id, item.data());
+      return booking === null ? [] : [booking];
+    })
+    .sort((first, second) => second.createdAt.localeCompare(first.createdAt));
+}
+
 export async function getBooking(id: string): Promise<Booking | null> {
   const snapshot = await getDoc(doc(bookingsCollection, id));
   return snapshot.exists() ? readBooking(snapshot.id, snapshot.data()) : null;
@@ -299,6 +314,124 @@ export async function rejectBooking(bookingId: string): Promise<void> {
       status: 'REJECTED',
       updatedAt: serverTimestamp(),
     });
+  });
+}
+
+async function readLifecycleBooking(transaction: Transaction, bookingId: string) {
+  const reference = doc(bookingsCollection, bookingId);
+  const snapshot = await transaction.get(reference);
+  const booking = snapshot.exists() ? readBooking(snapshot.id, snapshot.data()) : null;
+  if (booking === null) {
+    throw new BookingServiceError('booking-not-found', 'This booking was not found.');
+  }
+  return { booking, reference };
+}
+
+function requireCurrentUser(): string {
+  const userId = auth.currentUser?.uid;
+  if (!userId) {
+    throw new BookingServiceError(
+      'unauthorized-lifecycle-action',
+      'You must be signed in to manage this booking.',
+    );
+  }
+  return userId;
+}
+
+export async function cancelBookingAsPatient(bookingId: string): Promise<void> {
+  const patientId = requireCurrentUser();
+  await runTransaction(firestore, async (transaction) => {
+    const { booking, reference } = await readLifecycleBooking(transaction, bookingId);
+    if (booking.patientId !== patientId) {
+      throw new BookingServiceError(
+        'unauthorized-lifecycle-action',
+        'You cannot change this booking.',
+      );
+    }
+    if (booking.status !== 'PENDING' && booking.status !== 'CONFIRMED') {
+      throw new BookingServiceError(
+        'booking-not-cancellable',
+        'Only pending or confirmed bookings can be cancelled.',
+      );
+    }
+    const reservationReference = doc(activeBookingsCollection, booking.patientId);
+    const reservation = await transaction.get(reservationReference);
+    if (!reservation.exists() || reservation.data().bookingId !== bookingId) {
+      throw new BookingServiceError('reservation-mismatch', 'This booking is no longer active.');
+    }
+    transaction.update(reference, { status: 'CANCELLED', updatedAt: serverTimestamp() });
+    transaction.delete(reservationReference);
+  });
+}
+
+export async function cancelBookingAsManager(bookingId: string): Promise<void> {
+  requireCurrentUser();
+  await runTransaction(firestore, async (transaction) => {
+    const { booking, reference } = await readLifecycleBooking(transaction, bookingId);
+    if (booking.status !== 'CONFIRMED') {
+      throw new BookingServiceError(
+        'booking-not-cancellable',
+        'Only confirmed bookings can be cancelled by a manager.',
+      );
+    }
+    const reservationReference = doc(activeBookingsCollection, booking.patientId);
+    const reservation = await transaction.get(reservationReference);
+    if (!reservation.exists() || reservation.data().bookingId !== bookingId) {
+      throw new BookingServiceError('reservation-mismatch', 'This booking is no longer active.');
+    }
+    transaction.update(reference, { status: 'CANCELLED', updatedAt: serverTimestamp() });
+    transaction.delete(reservationReference);
+  });
+}
+
+export async function startBooking(bookingId: string): Promise<void> {
+  const patientId = requireCurrentUser();
+  await runTransaction(firestore, async (transaction) => {
+    const { booking, reference } = await readLifecycleBooking(transaction, bookingId);
+    if (booking.patientId !== patientId) {
+      throw new BookingServiceError(
+        'unauthorized-lifecycle-action',
+        'You cannot start this booking.',
+      );
+    }
+    if (booking.status !== 'CONFIRMED') {
+      throw new BookingServiceError(
+        'booking-not-confirmed',
+        'Only confirmed bookings can be started.',
+      );
+    }
+    const reservationReference = doc(activeBookingsCollection, booking.patientId);
+    const reservation = await transaction.get(reservationReference);
+    if (!reservation.exists() || reservation.data().bookingId !== bookingId) {
+      throw new BookingServiceError('reservation-mismatch', 'This booking is no longer active.');
+    }
+    transaction.update(reference, { status: 'IN_PROGRESS', updatedAt: serverTimestamp() });
+  });
+}
+
+export async function completeBooking(bookingId: string): Promise<void> {
+  const patientId = requireCurrentUser();
+  await runTransaction(firestore, async (transaction) => {
+    const { booking, reference } = await readLifecycleBooking(transaction, bookingId);
+    if (booking.patientId !== patientId) {
+      throw new BookingServiceError(
+        'unauthorized-lifecycle-action',
+        'You cannot complete this booking.',
+      );
+    }
+    if (booking.status !== 'IN_PROGRESS') {
+      throw new BookingServiceError(
+        'booking-not-in-progress',
+        'Only bookings in progress can be completed.',
+      );
+    }
+    const reservationReference = doc(activeBookingsCollection, booking.patientId);
+    const reservation = await transaction.get(reservationReference);
+    if (!reservation.exists() || reservation.data().bookingId !== bookingId) {
+      throw new BookingServiceError('reservation-mismatch', 'This booking is no longer active.');
+    }
+    transaction.update(reference, { status: 'COMPLETED', updatedAt: serverTimestamp() });
+    transaction.delete(reservationReference);
   });
 }
 

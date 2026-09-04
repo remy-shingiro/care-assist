@@ -68,12 +68,13 @@ service cloud.firestore {
         request.resource.data.endTime is string &&
         request.resource.data.serviceDescription is string &&
         request.resource.data.createdAt == request.time &&
-        request.resource.data.updatedAt == request.time;
-
-      allow update: if isManager() &&
         request.resource.data.updatedAt == request.time &&
+        getAfter(/databases/$(database)/documents/activeBookings/$(request.auth.uid)).data.bookingId == bookingId;
+
+      allow update: if request.resource.data.updatedAt == request.time &&
         (
-          (resource.data.status == 'PENDING' &&
+          (isManager() &&
+            resource.data.status == 'PENDING' &&
             request.resource.data.diff(resource.data).affectedKeys().hasOnly([
               'assignedAssistantId', 'status', 'updatedAt'
             ]) &&
@@ -87,7 +88,8 @@ service cloud.firestore {
                 get(/databases/$(database)/documents/assistants/$(request.resource.data.assignedAssistantId)).data.active == true &&
                 getAfter(/databases/$(database)/documents/activeBookings/$(resource.data.patientId)).data.bookingId == bookingId)
             )) ||
-          (resource.data.status == 'CONFIRMED' &&
+          (isManager() &&
+            resource.data.status == 'CONFIRMED' &&
             request.resource.data.status == 'CONFIRMED' &&
             request.resource.data.assignedAssistantId is string &&
             request.resource.data.assignedAssistantId != resource.data.assignedAssistantId &&
@@ -95,7 +97,24 @@ service cloud.firestore {
               'assignedAssistantId', 'updatedAt'
             ]) &&
             get(/databases/$(database)/documents/assistants/$(request.resource.data.assignedAssistantId)).data.active == true &&
-            getAfter(/databases/$(database)/documents/activeBookings/$(resource.data.patientId)).data.bookingId == bookingId)
+            getAfter(/databases/$(database)/documents/activeBookings/$(resource.data.patientId)).data.bookingId == bookingId) ||
+          (isManager() &&
+            resource.data.status == 'CONFIRMED' &&
+            request.resource.data.status == 'CANCELLED' &&
+            request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'updatedAt']) &&
+            !existsAfter(/databases/$(database)/documents/activeBookings/$(resource.data.patientId))) ||
+          (isBookingOwner(resource.data.patientId) &&
+            request.resource.data.patientId == resource.data.patientId &&
+            request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'updatedAt']) &&
+            ((resource.data.status in ['PENDING', 'CONFIRMED'] &&
+                request.resource.data.status == 'CANCELLED' &&
+                !existsAfter(/databases/$(database)/documents/activeBookings/$(resource.data.patientId))) ||
+              (resource.data.status == 'CONFIRMED' &&
+                request.resource.data.status == 'IN_PROGRESS' &&
+                getAfter(/databases/$(database)/documents/activeBookings/$(resource.data.patientId)).data.bookingId == bookingId) ||
+              (resource.data.status == 'IN_PROGRESS' &&
+                request.resource.data.status == 'COMPLETED' &&
+                !existsAfter(/databases/$(database)/documents/activeBookings/$(resource.data.patientId)))))
         );
       allow delete: if false;
     }
@@ -108,9 +127,11 @@ service cloud.firestore {
         request.resource.data.bookingId is string &&
         getAfter(/databases/$(database)/documents/bookings/$(request.resource.data.bookingId)).data.patientId == patientId &&
         getAfter(/databases/$(database)/documents/bookings/$(request.resource.data.bookingId)).data.status == 'PENDING';
-      allow delete: if isManager() &&
+      allow delete: if (isManager() || isOwner(patientId)) &&
         getAfter(/databases/$(database)/documents/bookings/$(resource.data.bookingId)).data.patientId == patientId &&
-        getAfter(/databases/$(database)/documents/bookings/$(resource.data.bookingId)).data.status == 'REJECTED';
+        getAfter(/databases/$(database)/documents/bookings/$(resource.data.bookingId)).data.status in [
+          'REJECTED', 'CANCELLED', 'COMPLETED'
+        ];
       allow update: if false;
     }
 
