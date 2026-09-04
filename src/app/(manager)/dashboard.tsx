@@ -14,6 +14,7 @@ export default function ManagerDashboard() {
       <Text>Welcome, {profile?.fullName}</Text>
       <Button label="Pending requests" onPress={() => router.push('/(manager)/requests')} />
       <Button label="Assistants" onPress={() => router.push('/(manager)/assistants')} />
+      <Button label="Education" onPress={() => router.push('/(manager)/education')} />
       <Button label="Sign out" onPress={() => void signOut()} />
     </Screen>
   );

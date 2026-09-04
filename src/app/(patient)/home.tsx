@@ -12,6 +12,7 @@ export default function PatientHome() {
     <Screen>
       <Text>Welcome, {profile?.fullName}</Text>
       <Button label="Request assistance" onPress={() => router.push('/(patient)/request')} />
+      <Button label="Education" onPress={() => router.push('/(patient)/education')} />
       <Button label="Sign out" onPress={() => void signOut()} />
     </Screen>
   );
