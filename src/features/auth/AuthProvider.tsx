@@ -72,7 +72,6 @@ export function AuthProvider({ children }: PropsWithChildren) {
 
   const registerPatient = async (registration: PatientRegistration): Promise<void> => {
     registrationInProgress.current = true;
-    setLoading(true);
     try {
       const credential = await signUp(registration.email, registration.password);
       await createPatientProfile(credential.user.uid, {
@@ -91,17 +90,11 @@ export function AuthProvider({ children }: PropsWithChildren) {
       throw error;
     } finally {
       registrationInProgress.current = false;
-      setLoading(false);
     }
   };
 
   const signIn = async (email: string, password: string): Promise<void> => {
-    setLoading(true);
-    try {
-      await firebaseSignIn(email, password);
-    } finally {
-      setLoading(false);
-    }
+    await firebaseSignIn(email, password);
   };
 
   const signOut = async (): Promise<void> => {

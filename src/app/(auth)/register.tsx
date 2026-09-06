@@ -9,13 +9,14 @@ import { useAuth } from '../../features/auth/AuthProvider';
 import { authenticationErrorMessage } from '../../utils/errors';
 
 export default function Register() {
-  const { registerPatient, loading } = useAuth();
+  const { registerPatient } = useAuth();
   const [fullName, setFullName] = useState('');
   const [phone, setPhone] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [error, setError] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const submit = async () => {
     if (!fullName.trim() || !phone.trim() || !email.trim() || !password || !confirmPassword) {
@@ -32,6 +33,7 @@ export default function Register() {
     }
 
     setError('');
+  setIsSubmitting(true);
     try {
       await registerPatient({
         fullName: fullName.trim(),
@@ -41,6 +43,8 @@ export default function Register() {
       });
     } catch (registrationError) {
       setError(authenticationErrorMessage(registrationError));
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -60,7 +64,7 @@ export default function Register() {
           value={confirmPassword}
         />
         {error ? <Text style={styles.error}>{error}</Text> : null}
-        <Button disabled={loading} label="Create account" onPress={() => void submit()} />
+        <Button disabled={isSubmitting} label="Create account" onPress={() => void submit()} />
         <Link href="/(auth)/login" style={styles.link}>
           Back to login
         </Link>

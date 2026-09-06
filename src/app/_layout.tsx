@@ -21,6 +21,7 @@ function RouteGate() {
 
     const currentGroup = segments[0];
     const targetGroup = target.split('/')[1];
+    if (currentGroup === undefined) return;
     if (currentGroup !== targetGroup) router.replace(target);
   }, [loading, profile, router, segments, target, user]);
 
@@ -34,7 +35,7 @@ function RouteGate() {
     );
   }
 
-  if (segments[0] !== target.split('/')[1]) {
+  if (segments[0] !== undefined && segments[0] !== target.split('/')[1]) {
     return (
       <Screen>
         <View style={styles.loading}>

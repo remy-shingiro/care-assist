@@ -9,10 +9,11 @@ import { useAuth } from '../../features/auth/AuthProvider';
 import { authenticationErrorMessage } from '../../utils/errors';
 
 export default function Login() {
-  const { signIn, loading } = useAuth();
+  const { signIn } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const submit = async () => {
     if (!email.trim() || !password) {
@@ -21,10 +22,13 @@ export default function Login() {
     }
 
     setError('');
+    setIsSubmitting(true);
     try {
       await signIn(email.trim(), password);
     } catch (signInError) {
       setError(authenticationErrorMessage(signInError));
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -36,7 +40,7 @@ export default function Login() {
         <TextInput label="Email" onChangeText={setEmail} value={email} />
         <TextInput label="Password" onChangeText={setPassword} secureTextEntry value={password} />
         {error ? <Text style={styles.error}>{error}</Text> : null}
-        <Button disabled={loading} label="Sign in" onPress={() => void submit()} />
+        <Button disabled={isSubmitting} label="Sign in" onPress={() => void submit()} />
         <Link href="/(auth)/register" style={styles.link}>
           Create a patient account
         </Link>
